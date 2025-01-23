@@ -70,6 +70,7 @@ library(ggplot2)
 # Import mouse bone marrow cells counts data containing all sequenced genes
 # Annotate with mm10 to prepare information including gene length and chromosome genes
 # Prepare gene lengths data by loading counts data with the 1st column named as 'gene_name'
+# counts_Lin_F, the counts data for Lin- cells, is used here as an example
 counts_Lin_F_mm10 <- counts_Lin_F %>%
   left_join(mm10, by = "gene_name") %>%
   distinct(gene_name, .keep_all = TRUE)
