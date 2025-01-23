@@ -1,0 +1,69 @@
+##### calculate the pearson correlation between different cell types
+
+# use this code after the original code of correlation btw X-linked DEGs and all X-linked genes
+# use this code after filtering the data with padj and log2FoldChange if needed
+# remember to mutate a column of density = 1
+# correlation between Lin- and MEF is analyzed here as an example
+
+# Set parameters for window size and step size
+window_size <- 1000000  # 1Mb
+step_size <- 250000     # 250kb
+
+# Create a new dataframe for enrichment scores
+enrichment_df <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(DEG_Lin_mm10_chrX$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract DEGs within the current window
+  peaks_in_window <- DEG_Lin_mm10_chrX[DEG_Lin_mm10_chrX$end >= start_window & DEG_Lin_mm10_chrX$start <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of density values)
+  enrichment_density <- sum(peaks_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info <- data.frame(start = start_window, end = end_window, enrichment_density = enrichment_density)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df <- rbind(enrichment_df, window_info)
+}
+
+# This line is used to adjust the difference between the number of rows of X-linked DEGs in different cells
+# Remove the last 70 rows (the actual number varies and needs to be adjusted each analysis)
+enrichment_df <- head(enrichment_df, n = nrow(enrichment_df) - 70)
+
+# Print the resulting enrichment dataframe for DEGs
+print(enrichment_df)
+
+
+# Create a new dataframe for enrichment scores
+enrichment_df_deg <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(resMEF_mm10_chrX_filtered$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract DEGs within the current window
+  degs_in_window <- resMEF_mm10_chrX_filtered[resMEF_mm10_chrX_filtered$end >= start_window & resMEF_mm10_chrX_filtered$start <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of density values)
+  enrichment_score_deg <- sum(degs_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info_deg <- data.frame(start = start_window, end = end_window, enrichment_score_deg = enrichment_score_deg)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df_deg <- rbind(enrichment_df_deg, window_info_deg)
+}
+
+# Remove the last 36 rows
+enrichment_df_deg <- head(enrichment_df_deg, n = nrow(enrichment_df_deg) - 1)
+
+# Print the resulting enrichment dataframe for DEGs
+print(enrichment_df_deg)
+
+
+correlation <- cor.test(enrichment_df$enrichment_density, enrichment_df_deg$enrichment_score_deg)
+
+print(correlation)
