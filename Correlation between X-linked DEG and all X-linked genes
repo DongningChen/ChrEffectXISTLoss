@@ -1,0 +1,106 @@
+library(GenomeInfoDb)
+library(rtracklayer)
+library(dplyr)
+library(GenomicRanges)
+
+# Read gene annotation file to extract all X-linked genes
+# hg38 is used here as an example for analyzing the correlation between X-linked DEGs and all X-linked genes in human OVCAR3 X7 cells
+
+genes <- readGFF("D:/UCirvine/Bioinformatics/DEG_data_IN/hg38.refGene.gtf")
+
+# Convert to GRanges object
+gr_genes <- as(genes, "GRanges")
+
+# Filter genes on chromosome X
+genes_chrX <- gr_genes[seqnames(gr_genes) == "chrX"]
+
+# Extract gene information
+gene_names <- mcols(genes_chrX)$gene_name
+start_positions <- start(genes_chrX)
+end_positions <- end(genes_chrX)
+
+# Create a data frame with gene information
+gene_data <- data.frame(gene_name = gene_names, start = start_positions, end = end_positions)
+
+# Remove duplicates and keep only the first occurrence
+gene_data <- gene_data[!duplicated(gene_data$gene_name), ]
+
+# For all X-linked gene data, add a column for density
+gene_data <- mutate(gene_data, density = 1)
+
+# Set parameters for window size and step size
+window_size <- 1000000  # 1Mb
+step_size <- 250000     # 250kb
+
+# Create a new dataframe for enrichment density
+enrichment_df <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(gene_data$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract peaks within the current window
+  peaks_in_window <- gene_data[gene_data$end >= start_window & gene_data$start <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of peak scores)
+  enrichment_density <- sum(peaks_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info <- data.frame(start = start_window, end = end_window, enrichment_density = enrichment_density)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df <- rbind(enrichment_df, window_info)
+}
+
+# Print the resulting enrichment dataframe
+print(enrichment_df)
+
+# This line is optional and used to adjust the difference between the number of rows of all X-linked genes and X-linked DEGs
+# Remove the last 14 rows (the actual number varies and needs to be adjusted each analysis)
+enrichment_df <- head(enrichment_df, n = nrow(enrichment_df) - 14)
+
+# Print the modified dataframe
+print(enrichment_df)
+
+
+
+# Import DEG data, extract chrX data and add a column for density = 1
+# resX7_hg38, which is the DESeq2 analyzed RNA-seq dataset for OVCAR3 X7, is used here as an example
+resX7_hg38_chrX <- filter(resX7_hg38, seqnames == "chrX")
+resX7_hg38_chrX <- mutate(resX7_hg38_chrX , density = 1)
+
+# Create a new dataframe for enrichment scores
+enrichment_df_deg <- data.frame()
+
+#set DEG cutoff of padj < 0.05 and |log2FoldChange| > 0.58
+resX7_hg38_chrX_filtered <- filter(resX7_hg38_chrX, padj < 0.05 & abs(log2FoldChange) > 0.58)
+
+# Iterate through windows
+for (start_window in seq(1, max(resX7_hg38_chrX_filtered$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract DEGs within the current window
+  degs_in_window <- resX7_hg38_chrX_filtered[resX7_hg38_chrX_filtered$end >= start_window & resX7_hg38_chrX_filtered$start <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of density values)
+  enrichment_score_deg <- sum(degs_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info_deg <- data.frame(start = start_window, end = end_window, enrichment_score_deg = enrichment_score_deg)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df_deg <- rbind(enrichment_df_deg, window_info_deg)
+}
+
+# This line is optional and used to adjust the difference between number of rows of all X-linked genes and X-linked DEGs
+# Remove the last 32 rows (the actual number varies and need to be adjusted each analysis)
+enrichment_df_deg <- head(enrichment_df_deg, n = nrow(enrichment_df_deg) - 32)
+
+# Print the resulting enrichment dataframe for DEGs
+print(enrichment_df_deg)
+
+# perform pearson correlation test
+correlation <- cor.test(enrichment_df$enrichment_density, enrichment_df_deg$enrichment_score_deg)
+
+print(correlation)
+
