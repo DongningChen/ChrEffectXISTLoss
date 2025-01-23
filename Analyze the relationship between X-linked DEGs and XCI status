@@ -1,0 +1,224 @@
+#### Analyze the relationship between XCI status and human X-linked DEGs after XIST loss
+
+library(dplyr)
+library(stats)
+library(tidyr)
+library(tibble)
+library(ggplot2)
+
+# Import the appropriate RNA-seq results from human XIST deficiency datasets
+# resX7_hg38, which is the DESeq2 analyzed RNA-seq results for OVCAR3 X7, is used here as an example
+resX7_hg38_chrX <- filter(resX7_hg38, seqnames == "chrX")
+
+DEG_df <- filter(resX7_hg38_chrX , padj < 0.05 & abs(log2FoldChange) > 0.58)
+
+non_DEG_df <- filter(resX7_hg38_chrX, !(padj < 0.05 & abs(log2FoldChange) > 0.58))
+
+DEG_df_XCI_status <- DEG_df %>%
+  left_join(XCI_Status_gene_list_Nature24265, by = "gene_name")
+
+non_DEG_df_XCI_status <- non_DEG_df %>%
+  left_join(XCI_Status_gene_list_Nature24265, by ="gene_name")
+
+# Count the number of DEG and non_DEG
+DEG_status_counts <- DEG_df_XCI_status %>%
+  count(Combined_XCI_status, sort = TRUE) %>%
+  mutate(Type = "DEG")
+
+non_DEG_status_counts <- non_DEG_df_XCI_status %>%
+  count(Combined_XCI_status, sort = TRUE) %>%
+  mutate(Type = "non_DEG")
+
+# Combine the counts into a single dataframe
+combined_status_counts <- bind_rows(DEG_status_counts, non_DEG_status_counts)
+
+# Pivot the combined dataframe to a wider format
+pivot_combined_status_counts <- combined_status_counts %>%
+  pivot_wider(names_from = Combined_XCI_status, values_from = n, values_fill = list(n = 0))
+
+# Extract relevant columns for the contingency test as MATRIX from pivot_combined_status_counts
+contingency_table <- pivot_combined_status_counts %>%
+  select(Type, inactive, escape) %>%
+  column_to_rownames(var = "Type") %>%
+  as.matrix()
+
+
+
+# Optional: Manually Define the contingency table; MATRIX is required for contingency test
+# contingency_table <- matrix(c(43, 12, 271, 44), nrow = 2, byrow = TRUE, dimnames = list(c("DEG", "non_DEG"), c("inactive", "escape")))
+
+# Print the contingency table
+print(contingency_table)
+
+# Perform Fisher's exact test
+fisher_test_result <- fisher.test(contingency_table, alternative = "two.sided")
+
+# Print the p-value
+cat("P-value for Fisher's exact test:", fisher_test_result$p.value, "\n")
+
+# analyze the XCI status in up- and down-regulated DEGs
+upDEG_df <- filter(resX7_hg38_chrX , padj < 0.05 & log2FoldChange > 0.58)
+
+downDEG_df <- filter(resX7_hg38_chrX , padj < 0.05 & log2FoldChange < -0.58)
+
+upDEG_df_XCI_status <- upDEG_df %>%
+  left_join(XCI_Status_gene_list_Nature24265, by = "gene_name")
+
+downDEG_df_XCI_status <- downDEG_df %>%
+  left_join(XCI_Status_gene_list_Nature24265, by ="gene_name")
+
+# Count the number of upregulated and downregulated DEGs
+upDEG_status_counts <- upDEG_df_XCI_status %>%
+  count(Combined_XCI_status, sort = TRUE) %>%
+  mutate(Type = "upDEG")
+
+downDEG_status_counts <- downDEG_df_XCI_status %>%
+  count(Combined_XCI_status, sort = TRUE) %>%
+  mutate(Type = "downDEG")
+
+# Combine the counts into a single dataframe
+combined_status_counts <- bind_rows(upDEG_status_counts, downDEG_status_counts)
+
+# Pivot the combined dataframe to a wider format
+pivot_combined_status_counts <- combined_status_counts %>%
+  pivot_wider(names_from = Combined_XCI_status, values_from = n, values_fill = list(n = 0))
+
+# The Optional method described previously can be applied here via manually Defining the contingency table of 'upDEG' / 'downDEG' and 'inactive' / 'escape'
+# Extract relevant columns for the contingency test as MATRIX from pivot_combined_status_counts
+contingency_table <- pivot_combined_status_counts %>%
+  select(Type, inactive, escape) %>%
+  column_to_rownames(var = "Type") %>%
+  as.matrix()
+
+# Perform Fisher's exact test
+fisher_test_result <- fisher.test(contingency_table, alternative = "two.sided")
+
+# Print the p-value
+cat("P-value for Fisher's exact test:", fisher_test_result$p.value, "\n")
+
+
+# When analyzing MEF data, replace XCI escape gene list with file 'XCI_status_MEF.xlsx'
+
+
+
+
+
+#### Analyze the relationship between XCI status and mouse X-linked DEGs after Xist loss
+
+library(dplyr)
+library(stats)
+library(ggplot2)
+
+# Import mouse bone marrow cell RNA-seq counts datasets containing all sequenced genes
+# Annotate with mm10 to get information including chromosome; LSK- cell is analyzed here as an example
+
+all_gene_df <- counts_LK_F %>%
+  inner_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+all_gene_df_chrX <- filter(all_gene_df, seqnames == "chrX")
+
+# Remove rows where all specified columns have zeros
+all_gene_df_chrX_filtered <- all_gene_df_chrX %>%
+  filter(!(LK_F_WT_1 == 0 & LK_F_WT_2 == 0 & LK_F_KO_1 == 0 & LK_F_KO_2 == 0))
+
+# Extract a new dataframe with only the 'gene_name' column
+all_gene_name_df_chrX <- all_gene_df_chrX_filtered %>%
+  select(gene_name)
+
+# Import DEG datasets
+DEG_df <- DEG_LK_mm10_chrX %>%
+  select(gene_name)
+
+# Use anti_join to get non-DEG genes
+non_DEG_df <- all_gene_name_df_chrX %>%
+  anti_join(DEG_df, by = "gene_name")
+
+# add XCI inactive and escape information
+DEG_df_XCI_status <- DEG_df %>%
+  inner_join(XCI_status_MEF, by = "gene_name")
+
+non_DEG_df_XCI_status <- non_DEG_df %>%
+  inner_join(XCI_status_MEF, by ="gene_name")
+
+# Count the number of each unique value in the XCI_status column, including NA for DEG_df_XCI_status
+DEG_status_counts <- DEG_df_XCI_status %>%
+  count(XCI_status, sort = TRUE) %>%
+  mutate(Type = "DEG")
+
+# Count the number of each unique value in the XCI_status column, including NA for non_DEG_df_XCI_status
+non_DEG_status_counts <- non_DEG_df_XCI_status %>%
+  count(XCI_status, sort = TRUE) %>%
+  mutate(Type = "non_DEG")
+
+# Combine the counts into a single dataframe
+combined_status_counts <- bind_rows(DEG_status_counts, non_DEG_status_counts)
+
+# Pivot the combined dataframe to a wider format
+pivot_combined_status_counts <- combined_status_counts %>%
+  pivot_wider(names_from = XCI_status, values_from = n, values_fill = list(n = 0))
+
+# Extract relevant columns for the contingency test as MATRIX from pivot_combined_status_counts
+contingency_table <- pivot_combined_status_counts %>%
+  select(Type, inactive, escape) %>%
+  column_to_rownames(var = "Type") %>%
+  as.matrix()
+
+
+# Optional: Manually Define the contingency table
+
+# Print the contingency table
+print(contingency_table)
+
+# Perform Fisher's exact test
+fisher_test_result <- fisher.test(contingency_table, alternative = "two.sided")
+
+# Print the p-value
+cat("P-value for Fisher's exact test:", fisher_test_result$p.value, "\n")
+
+# Import DEG datasets and extract upregulated and downregulated DEGs respectively
+upDEG_df <- filter(DEG_LK_mm10_chrX , FoldChange > 1)
+
+downDEG_df <- filter(DEG_LK_mm10_chrX , FoldChange < 1)
+
+upDEG_df_XCI_status <- upDEG_df %>%
+  inner_join(XCI_status_MEF, by = "gene_name")
+
+downDEG_df_XCI_status <- downDEG_df %>%
+  inner_join(XCI_status_MEF, by ="gene_name")
+
+# Count the number of upregulated and downregulated DEGs
+upDEG_status_counts <- upDEG_df_XCI_status %>%
+  count(XCI_status, sort = TRUE) %>%
+  mutate(Type = "upDEG")
+
+downDEG_status_counts <- downDEG_df_XCI_status %>%
+  count(XCI_status, sort = TRUE) %>%
+  mutate(Type = "downDEG")
+
+# Combine the counts into a single dataframe
+combined_status_counts <- bind_rows(upDEG_status_counts, downDEG_status_counts)
+
+# Pivot the combined dataframe to a wider format
+pivot_combined_status_counts <- combined_status_counts %>%
+  pivot_wider(names_from = XCI_status, values_from = n, values_fill = list(n = 0))
+
+# Extract relevant columns for the contingency test as MATRIX from pivot_combined_status_counts
+contingency_table <- pivot_combined_status_counts %>%
+  select(Type, inactive, escape) %>%
+  column_to_rownames(var = "Type") %>%
+  as.matrix()
+
+# Optional: Manually Define the contingency table
+
+# Print the contingency table
+print(contingency_table)
+
+# Perform Fisher's exact test
+fisher_test_result <- fisher.test(contingency_table, alternative = "two.sided")
+
+# Print the p-value
+cat("P-value for Fisher's exact test:", fisher_test_result$p.value, "\n")
+
+
+
+
