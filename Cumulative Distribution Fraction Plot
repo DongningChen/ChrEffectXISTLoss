@@ -1,0 +1,172 @@
+#### CDF plot code for human datasets
+
+library(dplyr)
+library(ggplot2)
+
+# Import related human XIST deficiency RNA-seq data 
+# 'resX7_hg38' which is the DEG data for OVCAR3 X7 clone, is used here as an example
+# Modify seqnames column to classify chr1-22 as autosomes but also show chr9 separately as an individual curve
+resX7_hg38_adjusted <- resX7_hg38 %>%
+  mutate(seqnames_group = ifelse(seqnames == "chr9", "chr9", 
+                                ifelse(seqnames == "chrX", "chrX", "autosomes")),
+         seqnames_autosomes = ifelse(seqnames == "chrX", "chrX", "autosomes"))  # Keep chr9 as autosomes for stats
+
+# Filter data with padj < 0.05
+resX7_hg38_adjusted_filtered <- resX7_hg38_adjusted %>%
+  filter(seqnames_autosomes %in% c("autosomes", "chrX"), padj < 0.05)
+
+# Create the base plot with autosomes (including chr9) and chrX
+p <- ggplot(resX7_hg38_adjusted_filtered %>% filter(seqnames_autosomes %in% c("autosomes", "chrX")),
+            aes(x = log2FoldChange, color = as.factor(seqnames_autosomes))) +
+  stat_ecdf(geom = "step", size = 1) +
+  labs(title = "Cumulative Distribution Fraction Plot",
+       x = "log2FoldChange",
+       y = "Cumulative Distribution") +
+  scale_color_manual(values = c("autosomes" = "black", "chrX" = "magenta", "chr9" = "cyan"), name = "") +
+  theme_minimal() + 
+  theme(axis.text = element_text(size = 12),  # Adjust x and y-axis label font size
+        axis.title = element_text(size = 14),  # Adjust title font size
+        legend.text = element_text(size = 12))  # Adjust legend text font size
+
+# Add the independent curve for chr9 on top of the existing plot
+p + 
+  stat_ecdf(data = resX7_hg38_adjusted_filtered %>% filter(seqnames_group == "chr9"),
+            aes(x = log2FoldChange, color = "chr9"), size = 1) +
+  scale_color_manual(values = c("autosomes" = "black", "chrX" = "magenta", "chr9" = "cyan"), name = "")
+
+
+
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chrX vs autosomes (including chr9)
+ks_test_result_chrX_vs_autosomes <- ks.test(resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_autosomes == "autosomes"],
+                                            resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_autosomes == "chrX"])
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chr9 vs autosomes (including chr9)
+ks_test_result_chr9_vs_autosomes <- ks.test(resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_autosomes == "autosomes"],
+                                            resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_group == "chr9"])
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chrX vs chr9
+ks_test_result_chrX_vs_chr9 <- ks.test(resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_group == "chrX"],
+                                       resX7_hg38_adjusted_filtered$log2FoldChange[resX7_hg38_adjusted_filtered$seqnames_group == "chr9"])
+
+
+
+# Print the KS test results
+print(ks_test_result_chrX_vs_autosomes)
+print(ks_test_result_chr9_vs_autosomes)
+print(ks_test_result_chrX_vs_chr9)
+
+# This code can be modified to analyze the CDF plots for mouse MEF RNA-seq data by changing 'chr9' into 'chr10'
+
+
+
+
+#### CDF code for mouse bone marrow cell datasets
+
+library(DESeq2)
+library(dplyr)
+library(ggplot2)
+
+# Import mouse bone marrow cells counts data containing all sequenced genes
+# Annotate with mm10 to prepare information including gene length and chromosome genes
+# Prepare gene lengths data by loading counts data with the 1st column named as 'gene_name'
+counts_Lin_F_mm10 <- counts_Lin_F %>%
+  left_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+gene_lengths <- counts_Lin_F_mm10$width
+
+# Use DESeq2 to calculate FPKM
+# Make sure reloading counts data with rowname as gene_name
+counts_data <- counts_Lin_F
+
+colData <- colData_Lin_F
+
+dds <- DESeqDataSetFromMatrix(countData = counts_data,
+                              colData = colData,
+                              design = ~ Treatment)
+
+dds <- DESeq(dds)
+
+# Assign gene lengths to the DESeq2 object
+mcols(dds)$basepairs <- gene_lengths.x
+
+# Now you can calculate FPKM
+fpkm_values <- fpkm(dds)
+
+# View the FPKM matrix
+head(fpkm_values)
+
+fpkm_df <- as.data.frame(fpkm_values)
+
+# Remove NA values and filter for all values >= 1
+filtered_fpkm_df <- fpkm_df %>%
+  filter_all(all_vars(. >= 1)) %>%
+  filter(rowSums(is.na(.)) == 0)
+
+# View the filtered FPKM data
+head(filtered_fpkm_df)
+
+# Calculate the fold change
+filtered_fpkm_df$FoldChange <- rowMeans(filtered_fpkm_df[, c("Lin_F_KO_1", "Lin_F_KO_2")] / filtered_fpkm_df[, c("Lin_F_WT_1", "Lin_F_WT_2")], na.rm = TRUE)
+
+
+# Convert row names to a column named 'gene_name'
+filtered_fpkm_df$gene_name <- rownames(filtered_fpkm_df)
+
+filtered_fpkm_df_mm10 <- filtered_fpkm_df %>%
+  left_join(filtered_df, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+# Modify seqnames column to classify as autosomes but also show chr10 separately for plotting
+filtered_fpkm_df_mm10_adjusted <- filtered_fpkm_df_mm10 %>%
+  mutate(seqnames_group = ifelse(seqnames.x == "chr10", "chr10", 
+                                 ifelse(seqnames.x == "chrX", "chrX", "autosomes")),
+         seqnames_autosomes = ifelse(seqnames.x == "chrX", "chrX", "autosomes"))  # Keep chr10 as autosomes for stats
+
+# Filter data for FoldChange between 0 and 2
+filtered_fpkm_df_mm10_adjusted <- filter(filtered_fpkm_df_mm10_adjusted, FoldChange >= 0 & FoldChange <= 2)
+
+
+
+# Create the base plot with autosomes (including chr10) and chrX
+p <- ggplot(filtered_fpkm_df_mm10_adjusted %>% filter(seqnames_autosomes %in% c("autosomes", "chrX")),
+            aes(x = FoldChange, color = as.factor(seqnames_autosomes))) +
+  stat_ecdf(geom = "step", size = 1) +
+  labs(title = "Cumulative Distribution Fraction Plot",
+       x = "FoldChange",
+       y = "Cumulative Distribution") +
+  scale_color_manual(values = c("autosomes" = "black", "chrX" = "magenta", "chr10" = "cyan"), name = "") +
+  theme_minimal() + 
+  theme(axis.text = element_text(size = 12),  # Adjust x and y-axis label font size
+        axis.title = element_text(size = 14),  # Adjust title font size
+        legend.text = element_text(size = 12))  # Adjust legend text font size
+
+# Add the curve for chr10 on top of the existing plot
+p + 
+  stat_ecdf(data = filtered_fpkm_df_mm10_adjusted %>% filter(seqnames_group == "chr10"),
+            aes(x = FoldChange, color = "chr10"), size = 1) +
+  scale_color_manual(values = c("autosomes" = "black", "chrX" = "magenta", "chr10" = "cyan"), name = "")
+
+
+
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chrX vs autosomes (including chr10)
+ks_test_result_chrX_vs_autosomes <- ks.test(filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_autosomes == "autosomes"],
+                                            filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_autosomes == "chrX"])
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chr9 vs autosomes (including chr10)
+ks_test_result_chr10_vs_autosomes <- ks.test(filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_autosomes == "autosomes"],
+                                             filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_group == "chr10"])
+
+# Perform Two-Tailed Kolmogorov-Smirnov Test for chrX vs chr10
+ks_test_result_chrX_vs_chr10 <- ks.test(filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_group == "chrX"],
+                                        filtered_fpkm_df_mm10_adjusted$FoldChange[filtered_fpkm_df_mm10_adjusted$seqnames_group == "chr10"])
+
+
+
+# Print the KS test results
+print(ks_test_result_chrX_vs_autosomes)
+print(ks_test_result_chr10_vs_autosomes)
+print(ks_test_result_chrX_vs_chr10)
+
