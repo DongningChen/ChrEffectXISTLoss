@@ -1,5 +1,6 @@
 library(dplyr)
 
+# Use Z test to compare the percentage of DEGs of chromosome X and autosomes
 # Import data, which is a data frame with columns 'Chromosome' and 'Percentage_DEGs'
 data <- read_excel("data.xlsx")
 View(data)
@@ -29,10 +30,10 @@ print(result)
 
 
 
+# Use Z test to compare the percentage of DEGs of the top ranked chromosome and the other chromosomes
+# Import data, which is a data frame with columns 'Chromosome' and 'Percentage_DEGs'
 
-# Assuming 'data' is a data frame with columns 'Chromosome' and 'Percentage_DEGs'
-
-# Extract data for first ranking chromosome
+# Extract data for the top ranked chromosome
 firstchrom_data <- data$Percentage_DEGs[data$Chromosome == "8"] / 100
 
 # Extract data for the rest of chromosomes
