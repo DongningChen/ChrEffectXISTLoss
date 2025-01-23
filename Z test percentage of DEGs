@@ -1,0 +1,54 @@
+library(dplyr)
+
+# Import data, which is a data frame with columns 'Chromosome' and 'Percentage_DEGs'
+data <- read_excel("data.xlsx")
+View(data)
+
+
+# Extract data for Chromosome X
+chromX_data <- data$Percentage_DEGs[data$Chromosome == "X"] / 100
+
+# Extract data for autosomes (assuming autosomes are labeled as 1 to 22)
+autosome_data <- data$Percentage_DEGs[data$Chromosome %in% c(1:19)] / 100
+
+# Number of observations for Chromosome X and autosomes
+n_chromX <- length(chromX_data)
+n_autosomes <- length(autosome_data)
+
+
+# Perform z-test for proportions
+result <- prop.test(
+  x = c(sum(chromX_data), sum(autosome_data)),
+  n = c(n_chromX, n_autosomes),
+  correct = FALSE
+)
+
+# Print the results
+print(result)
+
+
+
+
+
+# Assuming 'data' is a data frame with columns 'Chromosome' and 'Percentage_DEGs'
+
+# Extract data for first ranking chromosome
+firstchrom_data <- data$Percentage_DEGs[data$Chromosome == "8"] / 100
+
+# Extract data for the rest of chromosomes
+restchrom_data <- data$Percentage_DEGs[data$Chromosome != "8"] / 100
+
+# Number of observations for the first ranking Chromosome and the rest chromosomes
+n_firstchrom <- length(firstchrom_data)
+n_restchrom <- length(restchrom_data)
+
+
+# Perform z-test for proportions
+result <- prop.test(
+  x = c(sum(firstchrom_data), sum(restchrom_data)),
+  n = c(n_firstchrom, n_restchrom),
+  correct = FALSE
+)
+
+# Print the results
+print(result)
