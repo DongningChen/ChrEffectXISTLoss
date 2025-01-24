@@ -1,0 +1,253 @@
+#### To compare XIST expression level among different cell types, calculate TPM of XIST using count data
+
+#### Import OVCAR3 control, X7 and X9 count data
+Control_X7_X9_counts <- Control_X7_X9_counts %>%
+  rename(gene_name = NAME)
+
+counts_data <- Control_X7_X9_counts %>%
+  inner_join(hg38, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Filter for XIST gene
+xist_data <- counts_data %>% filter(gene_name == "XIST")
+
+# Extract XIST counts and gene length
+xist_counts <- as.numeric(xist_data[, c("N4_2", "N4_3", "N4_4", "N7_2", "N7_3", "N7_4", "N9_2", "N9_3", "N9_4")])
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_data[, c("N4_2", "N4_3", "N4_4", "N7_2", "N7_3", "N7_4", "N9_2", "N9_3", "N9_4")] /
+                       (counts_data$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import MaSC count data
+counts_data_MaSC <- counts_data_MaSC %>%
+  rename(Geneid = X)
+
+counts_data_MaSC <- counts_data_MaSC %>%
+  inner_join(GSE159946_raw.counts, by = "Geneid")
+
+# Filter for XIST gene
+xist_data <- counts_data_MaSC %>% filter(Geneid == "XIST")
+
+# Extract XIST counts and gene length
+xist_counts <- as.numeric(xist_data[, c("A567T09", "A567T10", "A567T13", "A567T14")])
+gene_length <- xist_data$Length  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_data_MaSC[, c("A567T09", "A567T10", "A567T13", "A567T14")] /
+                       (counts_data_MaSC$Length / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import ML count data
+counts_data_ML <- counts_data_ML %>%
+  rename(Geneid = X)
+
+counts_data_ML <- counts_data_ML %>%
+  inner_join(GSE159946_raw.counts, by = "Geneid")
+
+# Filter for XIST gene
+xist_data <- counts_data_ML %>% filter(Geneid == "XIST")
+
+# Extract XIST counts and gene length
+xist_counts <- as.numeric(xist_data[, c("A567T11", "A567T12", "A567T15", "A567T16")])
+gene_length <- xist_data$Length  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_data_ML[, c("A567T11", "A567T12", "A567T15", "A567T16")] /
+                       (counts_data_ML$Length / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import human ESC count data
+counts_hPSC <- counts_hPSC %>%
+  rename(gene_name = Column1)
+
+counts_hPSC <- counts_hPSC %>%
+  inner_join(hg38, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Filter for XIST gene
+xist_data <- counts_hPSC %>% filter(gene_name == "XIST")
+
+# Select column names from 2nd to 33rd in the counts_hPSC dataframe
+sample_names <- colnames(counts_hPSC)[2:33]
+
+# Extract XIST counts for these sample names
+xist_counts <- as.numeric(xist_data[, sample_names])
+
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_hPSC[, sample_names] /
+                       (counts_hPSC$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import Lin- count data
+gtf <- rtracklayer::import('D:/UCirvine/Bioinformatics/New_folder/merged_lin.gtf')
+mm10=as.data.frame(gtf)
+
+
+counts_Lin_F <- counts_Lin_F %>%
+  inner_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Filter for XIST gene
+xist_data <- counts_Lin_F %>% filter(gene_name == "Xist")
+
+
+# Extract XIST counts for these sample names
+xist_counts <- as.numeric(xist_data[, c("Lin_F_WT_1", "Lin_F_WT_2", "Lin_F_KO_1", "Lin_F_KO_2")])
+
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_Lin_F[, c("Lin_F_WT_1", "Lin_F_WT_2", "Lin_F_KO_1", "Lin_F_KO_2")] /
+                       (counts_Lin_F$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import LSK+ count data
+counts_LSK_F <- counts_LSK_F %>%
+  inner_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Filter for XIST gene
+xist_data <- counts_LSK_F %>% filter(gene_name == "Xist")
+
+
+# Extract XIST counts for these sample names
+xist_counts <- as.numeric(xist_data[, c("LSK_F_WT_1", "LSK_F_WT_2", "LSK_F_KO_1", "LSK_F_KO_2")])
+
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_LSK_F[, c("LSK_F_WT_1", "LSK_F_WT_2", "LSK_F_KO_1", "LSK_F_KO_2")] /
+                       (counts_LSK_F$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import LSK- count data
+counts_LK_F <- counts_LK_F %>%
+  inner_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Step 1: Filter for XIST gene
+xist_data <- counts_LK_F %>% filter(gene_name == "Xist")
+
+
+# Extract XIST counts for these sample names
+xist_counts <- as.numeric(xist_data[, c("LK_F_WT_1", "LK_F_WT_2", "LK_F_KO_1", "LK_F_KO_2")])
+
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_LK_F[, c("LK_F_WT_1", "LK_F_WT_2", "LK_F_KO_1", "LK_F_KO_2")] /
+                       (counts_LK_F$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
+#### Import MEF count data
+counts_MEF <- counts_MEF %>%
+  rename(gene_name = X)
+
+counts_MEF <- counts_MEF %>%
+  inner_join(mm10, by = "gene_name") %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+
+# Filter for XIST gene
+xist_data <- counts_MEF %>% filter(gene_name == "Xist")
+
+
+# Extract XIST counts for these sample names
+xist_counts <- as.numeric(xist_data[, c("WT_1", "WT_2", "XistKO_1", "XistKO_2")])
+
+gene_length <- xist_data$width  # Length of XIST gene in base pairs
+
+# Calculate Reads Per Kilobase (RPK)
+xist_rpk <- xist_counts / (gene_length / 1000)
+
+# Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
+total_rpk <- colSums(counts_MEF[, c("WT_1", "WT_2", "XistKO_1", "XistKO_2")] /
+                       (counts_MEF$width / 1000), na.rm = TRUE)
+scaling_factor <- total_rpk / 1e6
+
+# Calculate TPM for XIST
+xist_tpm <- xist_rpk / scaling_factor
+
+# Display TPM values
+xist_tpm
+
+
