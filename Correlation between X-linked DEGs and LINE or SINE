@@ -1,0 +1,136 @@
+library(ggplot2)
+library(dplyr)
+
+# Import rmsk_hu data to get human LINE and SINE information; rmsk_hu (for human; or rmsk_ms for mouse) is downloaded from ucsc genome browser
+# Detail description can be found in https://genome.ucsc.edu/cgi-bin/hgTables?db=hg38&hgta_group=rep&hgta_track=rmsk&hgta_table=rmsk&hgta_doSchema=describe+table+schema
+# and in https://genome.ucsc.edu/cgi-bin/hgTables?db=mm10&hgta_group=varRep&hgta_track=rmsk&hgta_table=rmsk&hgta_doSchema=describe+table+schema
+
+df_chr <- filter(rmsk_hu, V6 == "chrX")
+
+# filter the df with chrx and all SINE elements
+df_chrX_SINE <- filter(df_chr, V12 == "SINE")
+
+# filter the df with chrX and all LINE elements
+df_chrX_LINE <- filter(df_chr, V12 == "LINE")
+
+
+df_chrX_SINE <- mutate(df_chrX_SINE, density = 1)
+df_chrX_SINE$V7 <- as.numeric(df_chrX_SINE$V7)
+df_chrX_SINE$V8 <- as.numeric(df_chrX_SINE$V8)
+
+df_chrX_LINE <- mutate(df_chrX_LINE, density = 1)
+df_chrX_LINE$V7 <- as.numeric(df_chrX_LINE$V7)
+df_chrX_LINE$V8 <- as.numeric(df_chrX_LINE$V8)
+
+
+# Calculate mean position
+df_chrX_SINE$mean_position <- (df_chrX_SINE$V7 + df_chrX_SINE$V8) / 2
+df_chrX_LINE$mean_position <- (df_chrX_LINE$V7 + df_chrX_LINE$V8) / 2
+
+
+# plot histogram
+ggplot(df_chrX_SINE, aes(x = mean_position)) +
+  geom_histogram(bins = 300, fill = "#6A0DAD", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(
+    x = "Genomic Position (bp)",      # X-axis title
+    y = "Frequency"      # Y-axis title
+  ) +
+  theme(
+    axis.title = element_text(size = 18, face = "bold"),  # Axis title font size
+    axis.text = element_text(size = 16, face = "bold")    # Axis text font size
+  )
+
+ggplot(df_chrX_LINE, aes(x = mean_position)) +
+  geom_histogram(bins = 300, fill = "#A6BF25", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(
+    x = "Genomic Position (bp)",      # X-axis title
+    y = "Frequency"      # Y-axis title
+  ) +
+  theme(
+    axis.title = element_text(size = 18, face = "bold"),  # Axis title font size
+    axis.text = element_text(size = 16, face = "bold")    # Axis text font size
+  )
+
+
+#### prepare enrichment data for SINE as an example
+# Set parameters for window size and step size
+window_size <- 1000000  # 1 Mb
+step_size <- 250000     # 250kb
+
+#### prepare enrichment data for SINE as an example
+# Create a new dataframe for enrichment density
+enrichment_df <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(df_chrX_SINE$V8), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract peaks within the current window
+  peaks_in_window <- df_chrX_SINE[df_chrX_SINE$V8 >= start_window & df_chrX_SINE$V7 <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of peak scores)
+  enrichment_density <- sum(peaks_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info <- data.frame(start = start_window, end = end_window, enrichment_density = enrichment_density)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df <- rbind(enrichment_df, window_info)
+}
+
+# Print the resulting enrichment dataframe
+print(enrichment_df)
+
+# This line is optional and used to adjust the difference between number of rows of all X genes and X-linked DEGs
+# Remove the last 12 rows (the actual number varies and need to be adjusted each analysis)
+enrichment_df <- head(enrichment_df, n = nrow(enrichment_df) - 12)
+
+# Print the modified dataframe
+print(enrichment_df)
+
+
+
+# Import appropriate DEG data and add a column for density = 1; OVCAR3 X7 is used here as an example
+resX7_hg38_chrX <- mutate(resX7_hg38_chrX , density = 1)
+#select the correct cutoff for DEGs, upregulated DEGs or downregulated DEGs
+resX7_hg38_chrX_filtered <- filter(resX7_hg38_chrX, padj < 0.05 & abs(log2FoldChange) > 0.58)
+resX7_hg38_chrX_filtered <- filter(resX7_hg38_chrX, padj < 0.05 & log2FoldChange > 0.58)
+resX7_hg38_chrX_filtered <- filter(resX7_hg38_chrX, padj < 0.05 & log2FoldChange < -0.58)
+
+# Create a new dataframe for enrichment scores
+enrichment_df_deg <- data.frame()
+
+
+# Iterate through windows
+for (start_window in seq(1, max(resX7_hg38_chrX_filtered$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  # Extract DEGs within the current window
+  degs_in_window <- resX7_hg38_chrX_filtered[resX7_hg38_chrX_filtered$end >= start_window & resX7_hg38_chrX_filtered$start <= end_window, ]
+  
+  # Calculate enrichment score (e.g., sum of density values)
+  enrichment_score_deg <- sum(degs_in_window$density)
+  
+  # Create a row for the dataframe with window information and enrichment score
+  window_info_deg <- data.frame(start = start_window, end = end_window, enrichment_score_deg = enrichment_score_deg)
+  
+  # Append the row to the enrichment dataframe
+  enrichment_df_deg <- rbind(enrichment_df_deg, window_info_deg)
+}
+
+# This line is optional and used to adjust the difference between number of rows of all X genes and X-linked DEGs
+# Remove the last 3 rows (the actual number varies and need to be adjusted each analysis)
+enrichment_df_deg <- head(enrichment_df_deg, n = nrow(enrichment_df_deg) - 3)
+
+# Print the resulting enrichment dataframe for DEGs
+print(enrichment_df_deg)
+
+
+correlation <- cor.test(enrichment_df$enrichment_density, enrichment_df_deg$enrichment_score_deg)
+
+print(correlation)
+
+
+
