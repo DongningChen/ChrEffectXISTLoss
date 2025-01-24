@@ -1,7 +1,7 @@
 library(dplyr)
 library(ggplot2)
 
-# Import appropriate DESeq2 analyzed human RNA-seq dataset of chromosome X; OVCAR3 X9 is used here as an example
+# Import appropriate DESeq2 analyzed human RNA-seq dataset of chromosome X; OVCAR3 X7 is used here as an example
 # filter DEGs by padj < 0.05 & |log2FoldChange| > 0.58
 resX7_hg38_chrX <- filter(resX7_hg38, seqnames == "chrX")
 df_filtered <- filter(resX7_hg38_chrX , padj < 0.05 & abs(log2FoldChange) > 0.58)
