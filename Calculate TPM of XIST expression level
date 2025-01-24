@@ -90,19 +90,19 @@ xist_tpm
 
 
 #### Import human ESC count data
-counts_hPSC <- counts_hPSC %>%
+counts_hESC <- counts_hESC %>%
   rename(gene_name = Column1)
 
-counts_hPSC <- counts_hPSC %>%
+counts_hESC <- counts_hESC %>%
   inner_join(hg38, by = "gene_name") %>%
   distinct(gene_name, .keep_all = TRUE)
 
 
 # Filter for XIST gene
-xist_data <- counts_hPSC %>% filter(gene_name == "XIST")
+xist_data <- counts_hESC %>% filter(gene_name == "XIST")
 
-# Select column names from 2nd to 33rd in the counts_hPSC dataframe
-sample_names <- colnames(counts_hPSC)[2:33]
+# Select column names from 2nd to 33rd in the counts_hESC dataframe
+sample_names <- colnames(counts_hESC)[2:33]
 
 # Extract XIST counts for these sample names
 xist_counts <- as.numeric(xist_data[, sample_names])
@@ -113,8 +113,8 @@ gene_length <- xist_data$width  # Length of XIST gene in base pairs
 xist_rpk <- xist_counts / (gene_length / 1000)
 
 # Calculate per-sample scaling factor (sum of all RPKs per sample divided by 1 million)
-total_rpk <- colSums(counts_hPSC[, sample_names] /
-                       (counts_hPSC$width / 1000), na.rm = TRUE)
+total_rpk <- colSums(counts_hESC[, sample_names] /
+                       (counts_hESC$width / 1000), na.rm = TRUE)
 scaling_factor <- total_rpk / 1e6
 
 # Calculate TPM for XIST
