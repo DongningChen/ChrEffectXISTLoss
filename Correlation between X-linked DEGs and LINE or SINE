@@ -28,7 +28,7 @@ df_chrX_SINE$mean_position <- (df_chrX_SINE$V7 + df_chrX_SINE$V8) / 2
 df_chrX_LINE$mean_position <- (df_chrX_LINE$V7 + df_chrX_LINE$V8) / 2
 
 
-# plot histogram
+# plot histogram of LINE and SINE distribution along the X chromosome
 ggplot(df_chrX_SINE, aes(x = mean_position)) +
   geom_histogram(bins = 300, fill = "#6A0DAD", color = "black", alpha = 0.7) +
   theme_minimal() +
