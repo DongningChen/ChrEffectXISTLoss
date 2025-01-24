@@ -1,5 +1,11 @@
-# Genomic-Analysis
-Genomic analysis codes for 'XIST loss induces variable transcriptional responses dependent on cell states'
+# Genomic Analysis
+
+This repository contains the genomic analysis code accompanying the study titled "XIST loss induces variable transcriptional responses dependent on cell states."
+
+## Overview
+
+The analyses provided here are designed to investigate the transcriptional consequences of XIST loss across different cell types, species and states. The repository includes scripts and data essential for reproducing the key findings of the study.
+
 
 # Description for 'Useful files'
 'Control_X7_X9_counts.txt' is the count data our lab generated from XIST knockdown OVCAR3 (GSE271117)
