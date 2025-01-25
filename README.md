@@ -21,7 +21,7 @@ The analyses provided here are designed to investigate the transcriptional conse
 
 The `Useful_files` directory contains essential data files for the analyses:
 
-'Control_X7_X9_counts.txt' is the count data our lab generated from XIST knockdown OVCAR3 (GSE271117)
+- **'Control_X7_X9_counts.txt' is the count data our lab generated from XIST knockdown OVCAR3 (GSE271117)
 'counts_data_MaSC.txt' and 'counts_data_ML.txt' are the count data generated from XIST knockout human mammary cells (GSE159946)
 'counts_hESC.txt' is the count data generated from XIST knockout human ESCs (GSE241444)
 'counts_Lin_F.txt', 'counts_LSK_F.txt', 'counts_LK_F.txt' and 'counts_MEF', are the count data for Xist-deficiency Lin-, LSK+, LSK- cells and MEF respectively, which are shared by the Yildirim group.
