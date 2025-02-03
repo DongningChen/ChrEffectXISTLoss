@@ -6,6 +6,12 @@ This repository contains the genomic analysis code accompanying the study titled
 
 The analyses provided here are designed to investigate the transcriptional consequences of XIST loss across different cell types, species and states. The repository includes scripts and data essential for reproducing the key findings of the study.
 
+## Prerequisites
+Before you begin, ensure that you have the following installed:
+
+R (version 4.0.0 or higher) and RStudio
+
+
 ## Repository Structure
 
 - **Analyze the relationship between X-linked DEGs and XCI status**: Investigate how XIST deficiency derived differentially expressed genes (DEGs), including all DEGs, up- and down-regulated DEGs, on the X chromosome correlate with X-chromosome inactivation (XCI) status (XCI escape or inactive genes).
