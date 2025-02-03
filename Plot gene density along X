@@ -1,0 +1,78 @@
+library(dplyr)
+library(ggplot2)
+
+# Import human genome data using hg38
+gtf <- rtracklayer::import('D:/UCirvine/Bioinformatics/DEG_data_IN/hg38.refGene.gtf')
+hg38=as.data.frame(gtf)
+
+# keep only unique gene_name
+hg38 <- hg38 %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+# extract X chromosome data
+genes_chrX <- filter(hg38, seqnames == "chrX")
+genes_chrX$mean_position <- (genes_chrX$start + genes_chrX$end) / 2
+
+# Plot gene density along X
+ggplot(genes_chrX, aes(x = start, xend = end, y = 1, yend = 1)) +  
+  geom_segment(size = 4, color = "black") +  
+  geom_vline(xintercept = c(0.0e+00, 2.5e+07, 5.0e+07, 7.5e+07, 1.0e+08, 1.25e+08, 1.5e+08), color = "grey") +  
+  scale_x_continuous(
+    name = "Genomic Position (bp)", 
+    expand = c(0, 0), 
+    breaks = c(0.0e+00, 5.0e+07, 1.0e+08, 1.5e+08), 
+    labels = c("0.0e+00", "5.0e+07", "1.0e+08", "1.5e+08")
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(), 
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),  
+    axis.text.x = element_text(size = 16, face = "bold"),   
+    axis.title.y = element_blank(),  
+    axis.text.y = element_blank(),   
+    axis.ticks.y = element_blank(),   
+    plot.margin = unit(c(0, 1, 0, 1), "cm")  
+  )
+
+
+
+# Import mouse genome data using mm10
+gtf <- rtracklayer::import('D:/UCirvine/Bioinformatics/Yang_NatCommun_2022/mm10.ncbiRefSeq.gtf')
+mm10=as.data.frame(gtf)
+
+# keep only unique gene_name
+mm10 <- mm10 %>%
+  distinct(gene_name, .keep_all = TRUE)
+
+# extract X chromosome data
+ms_genes_chrX <- filter(mm10, seqnames == "chrX")
+ms_genes_chrX$mean_position <- (ms_genes_chrX$start + ms_genes_chrX$end) / 2
+
+# Plot gene density along X
+ggplot(ms_genes_chrX, aes(x = start, xend = end, y = 1, yend = 1)) +  # All genes at the same y position
+  geom_segment(size = 4, color = "black") +  # Horizontal lines representing each gene
+  # Adding vertical lines at specific positions along X-axis
+  geom_vline(xintercept = c(0.0e+00, 2.5e+07, 5.0e+07, 7.5e+07, 1.0e+08, 1.25e+08, 1.5e+08, 1.75e+08), color = "grey") +  
+  scale_x_continuous(
+    name = "Genomic Position (bp)", 
+    expand = c(0, 0), 
+    breaks = c(0.0e+00, 5.0e+07, 1.0e+08, 1.5e+08), # Set breaks at the same positions
+    labels = c("0.0e+00", "5.0e+07", "1.0e+08", "1.5e+08") # Set custom labels
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.major.x = element_blank(), 
+    panel.grid.minor.x = element_blank(),
+    panel.grid.major.y = element_blank(), 
+    panel.grid.minor.y = element_blank(),
+    axis.title.x = element_text(size = 18, face = "bold"),  # Set X-axis title font size to 18
+    axis.text.x = element_text(size = 16, face = "bold"),   # Set X-axis text (ticks) font size to 16
+    axis.title.y = element_blank(),  # Remove Y-axis title
+    axis.text.y = element_blank(),   # Remove Y-axis text
+    axis.ticks.y = element_blank(),  # Remove Y-axis ticks
+    plot.margin = unit(c(0, 1, 0, 1), "cm")
+  )
+
