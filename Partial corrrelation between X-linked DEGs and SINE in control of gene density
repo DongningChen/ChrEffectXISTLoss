@@ -1,0 +1,89 @@
+library(dplyr)
+library(ppcor)
+
+# import SINE (downloaded from UCSC genome browser)
+df_chr <- filter(rmsk_hu, V6 == "chrX")
+
+# filter the df with chrx and select all SINE elements
+df_chrX_SINE <- filter(df_chr, V12 == "SINE")
+
+df_chrX_SINE <- mutate(df_chrX_SINE, density = 1)
+df_chrX_SINE$V7 <- as.numeric(df_chrX_SINE$V7)
+df_chrX_SINE$V8 <- as.numeric(df_chrX_SINE$V8)
+
+# prepare enrichment dataframe for SINE
+# Set parameters for window size and step size
+window_size <- 1000000  # 1 Mb
+step_size <- 250000     # 250kb
+
+# Create a new dataframe for enrichment density
+enrichment_df <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(df_chrX_SINE$V8), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  peaks_in_window <- df_chrX_SINE[df_chrX_SINE$V8 >= start_window & df_chrX_SINE$V7 <= end_window, ]
+  
+  enrichment_density <- sum(peaks_in_window$density)
+
+  window_info <- data.frame(start = start_window, end = end_window, enrichment_density = enrichment_density)
+  
+  enrichment_df <- rbind(enrichment_df, window_info)
+}
+
+
+# import X linked DEGs of a certain cell type (ESC C18 used here as an example)
+resESC_KO_C18_chrX <- mutate(resESC_KO_C18_chrX , density = 1)
+# set the correct cutoff for DEGs
+resESC_KO_C18_chrX_filtered <- filter(resESC_KO_C18_chrX, padj < 0.05 & abs(log2FoldChange) > 0.58)
+
+# Create a new dataframe for enrichment scores
+enrichment_df_deg <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(resESC_KO_C18_chrX_filtered$end), by = step_size)) {
+  end_window <- start_window + window_size
+
+  degs_in_window <- resESC_KO_C18_chrX_filtered[resESC_KO_C18_chrX_filtered$end >= start_window & resESC_KO_C18_chrX_filtered$start <= end_window, ]
+  
+  enrichment_score_deg <- sum(degs_in_window$density)
+  
+  window_info_deg <- data.frame(start = start_window, end = end_window, enrichment_score_deg = enrichment_score_deg)
+  
+  enrichment_df_deg <- rbind(enrichment_df_deg, window_info_deg)
+}
+
+
+# import X linked gene density using hg38 genome
+hg38_unique <- hg38 %>%
+  distinct(gene_name, .keep_all = TRUE)
+hg38_chrX <- filter(hg38_unique, seqnames == "chrX")
+
+# Create a new dataframe for enrichment scores of gene density
+enrichment_df_hg38 <- data.frame()
+
+# Iterate through windows
+for (start_window in seq(1, max(hg38_chrX$end), by = step_size)) {
+  end_window <- start_window + window_size
+  
+  genes_in_window <- hg38_chrX[hg38_chrX$end >= start_window & hg38_chrX$start <= end_window, ]
+  
+  enrichment_score_hg38 <- sum(genes_in_window$density)
+  
+  window_info_gene <- data.frame(start = start_window, end = end_window, enrichment_score_hg38 = enrichment_score_hg38)
+  
+  enrichment_df_hg38 <- rbind(enrichment_df_hg38, window_info_gene)
+}
+
+
+merged_enrichment_df <- enrichment_df %>%
+  inner_join(enrichment_df_deg, by = "start") %>%
+  inner_join(enrichment_df_hg38, by = "start")
+
+# Calculate partial correlation
+partial_corr_result <- pcor.test(merged_enrichment_df$enrichment_density,
+                                 merged_enrichment_df$enrichment_score_deg,
+                                 merged_enrichment_df$enrichment_score_hg38)
+
+print(partial_corr_result)
