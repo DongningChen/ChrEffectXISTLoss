@@ -23,7 +23,8 @@ R (version 4.0.0 or higher) and RStudio
 - **X-linked DEG distribution along X**: Visualization of the distribution of X-linked DEGs (after XIST loss) across the X chromosome. Up- and down-regulated DEGs and XCI escape genes are labeled with distinct colors.
 - **Z test for percentage of DEGs**: Statistical analysis comparing the percentage of DEGs of chromosome X and autosomes and comparing the percentage of DEGs of the top ranked chromosome and the remaining DEGs.
 - **Correlation of the X-linked DEGs between different cells**: Evaluate the correlation of X-linked DEGs distributions between different cells within the same species.
-- **Partial Correlation between X-linked DEGs and SINE in control of gene density**: 
+- **Partial Correlation between X-linked DEGs and SINE in control of gene density**: use ppcor package to study the partial Pearson correlaiton between DEGs and SINE in control of gene density since both DEGs and SINE show a positive correlation with gene density independently; we want to test whether X-linked DEGs is still related to SINE density independent of gene density.
+
 
 ## Data
 
